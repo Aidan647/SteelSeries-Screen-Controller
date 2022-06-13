@@ -1,22 +1,23 @@
-import { Font } from "./font"
-import { screen, pixelColor, RectOptions, ProgressBarOptions } from "./types"
+import {
+	screen,
+	pixelColor,
+	RectOptions,
+	ProgressBarOptions,
+	ImageOptions,
+	TextOptions,
+	AnimationOptions,
+	LineOptions,
+} from "./types"
 
 export class Display {
 	// The display is a singleton class that manages the display.
 	static instance: Display | undefined = undefined
 	display: screen
-	private constructor(public width: number, public height: number, public address: string) {
+	constructor(public width: number, public height: number) {
 		// Create the display.
 		this.display = Array(this.height)
 			.fill(0)
 			.map(() => Array(this.width).fill(0))
-	}
-	static getInstance(address?: string): Display {
-		if (this.instance === undefined) {
-			if (address === undefined) throw new Error("No address provided")
-			this.instance = new Display(128, 36, address)
-		}
-		return this.instance
 	}
 
 	/**
@@ -60,23 +61,24 @@ export class Display {
 	 * draw a line between the given coordinates.
 	 * @param color 0 = off, 1 = on (default), -1 = invert
 	 */
-	drawLine(x1: number, y1: number, x2: number, y2: number, color: pixelColor = 1): this {
-		const dx = Math.abs(x2 - x1)
-		const dy = Math.abs(y2 - y1)
-		const sx = x1 < x2 ? 1 : -1
-		const sy = y1 < y2 ? 1 : -1
+	drawLine(options: LineOptions): this {
+		var { x, y, x2, y2, color } = options
+		const dx = Math.abs(x2 - x)
+		const dy = Math.abs(y2 - y)
+		const sx = x < x2 ? 1 : -1
+		const sy = y < y2 ? 1 : -1
 		let err = dx - dy
 		while (true) {
-			this.drawPixel(x1, y1, color)
-			if (x1 === x2 && y1 === y2) break
+			this.drawPixel(x, y, color ?? 1)
+			if (x === x2 && y === y2) break
 			const e2 = 2 * err
 			if (e2 > -dy) {
 				err -= dy
-				x1 += sx
+				x += sx
 			}
 			if (e2 < dx) {
 				err += dx
-				y1 += sy
+				y += sy
 			}
 		}
 		return this
@@ -84,46 +86,72 @@ export class Display {
 	/**
 	 * Draw text on the display.
 	 */
-	drawText(text: string, font: Font): this
-	/**
-	 * Draw text on the display.
-	 */
-	drawText(text: string, font: Font, x: number, y: number): this
-	/**
-	 * Draw text on the display.
-	 * @param color 0 = off, 1 = on (default), -1 = invert
-	 */
-	drawText(text: string, font: Font, x: number, y: number, color: pixelColor): this
-	drawText(text: string, font: Font, x: number = 0, y: number = 0, color: pixelColor = 1): this {
+	drawText(options: TextOptions): this {
+		const { x, y, text, font, color, background } = options
+		const vertical_align = options.vertical_align || "top"
+		const horizontal_align = options.horizontal_align || "left"
+
 		// calculate the text
 		const textArray = text.split("")
 		const textLength = textArray.length
 		const textHeight = font.height
+		const textWidth = textLength * font.width
+		const textX =
+			horizontal_align === "center" ? x - textWidth / 2 : horizontal_align === "right" ? x - textWidth : x
+		const textY =
+			vertical_align === "middle" ? y - textHeight / 2 : vertical_align === "bottom" ? y - textHeight : y
 
 		// draw the text
 		for (let i = 0; i < textLength; i++) {
-			const letter = textArray[i].codePointAt(0)?.toString()
-			if (letter === undefined) {
-				console.log(`Letter ${i} not found in font`)
-				continue
-			}
-			const letterArray = font.letters[letter]
-			if (letterArray === undefined) {
-				console.log(`Letter ${letter} not found in font`)
-				continue
-			}
-			for (let j = 0; j < textHeight; j++) {
-				const row = letterArray[j]
-				for (let k = 0; k < font.width; k++) {
-					if (row[k] === 1) {
-						// if pixel pos is out of display bounds, don't draw it
-						if (x + k < 0 || x + k >= this.width || y + j < 0 || y + j >= this.height) continue
-						this.drawPixel(x + i * font.width + k, y + j, color)
+			const char = textArray[i]
+			const charX = textX + i * font.width
+			const charY = textY
+			const charData = font.get(char)
+			for (let j = 0; j < charData.length; j++) {
+				const charRow = charData[j]
+				const charRowY = charY + j
+				for (let k = 0; k < charRow.length; k++) {
+					const charCol = charRow[k]
+					const charColX = charX + k
+					if (charCol === 1) {
+						if (color !== undefined) this.drawPixel(charColX, charRowY, color)
+					} else if (charCol === 0) {
+						if (background !== undefined) this.drawPixel(charColX, charRowY, background)
 					}
 				}
 			}
 		}
 
+		return this
+	}
+	drawImage(options: ImageOptions): this {
+		const { x, y, image, color, background } = options
+		if (typeof image === "string") throw new Error("Not implemented")
+		// use image.width and image.height
+		for (let i = 0; i < image.width; i++) {
+			for (let j = 0; j < image.height; j++) {
+				if (image.getPixel(i, j) === 1 && color !== undefined) {
+					this.drawPixel(x + i, y + j, color)
+				} else if (image.getPixel(i, j) === 0 && background !== undefined) {
+					this.drawPixel(x + i, y + j, background)
+				}
+			}
+		}
+
+		return this
+	}
+	drawAnimation(options: AnimationOptions): this {
+		const { x, y, color, background } = options
+		const frame = "frame" in options ? options.frame : options.animation.get(options.index)
+		for (let i = 0; i < frame.length; i++) {
+			for (let j = 0; j < frame[i].length; j++) {
+				if (frame[i][j] === 1 && color !== undefined) {
+					this.drawPixel(x + i, y + j, color)
+				} else if (frame[i][j] === 0 && background !== undefined) {
+					this.drawPixel(x + i, y + j, background)
+				}
+			}
+		}
 		return this
 	}
 	// drawRect(options: RectOptionsWithEndPos): this
@@ -172,9 +200,8 @@ export class Display {
 		if (margin !== undefined) {
 			this.drawRect({ x: x + 1, y: y + 1, width: width - 2, height: height - 2, stroke: margin })
 		}
-		
+
 		// get left top pos of bar
-		
 
 		const bar2 = {
 			x: x + offset,
@@ -184,10 +211,8 @@ export class Display {
 		}
 		const barWidth = Math.floor(progress * (width - 2 * offset))
 		const barHeight = Math.floor(progress * (height - 2 * offset))
-		console.log(progress * (width - 2 * offset))
 		const verrev = vertical === reverse
 		if (bar !== undefined) {
-			
 			// if (!vertical && !reverse) {
 			// 	this.drawRect({
 			// 		x: bar2.x,
@@ -231,7 +256,6 @@ export class Display {
 		}
 		// draw background following the offset
 		if (background !== undefined) {
-			
 			// if (!vertical && !reverse) {
 			// 	this.drawRect({
 			// 		x: bar2.x + barWidth,
@@ -265,7 +289,7 @@ export class Display {
 			// 		fill: background,
 			// 	})
 			// }
-		
+
 			this.drawRect({
 				x: !verrev || reverse ? bar2.x : bar2.x + barWidth,
 				y: !verrev || !reverse ? bar2.y : bar2.y + barHeight,
@@ -277,6 +301,9 @@ export class Display {
 
 		return this
 	}
+	//get image as png base64 string
+	// getImage() {
+
 	// Draw display to the screen.
 	/**
 	 * @description Get the display data as ready to send to the display.

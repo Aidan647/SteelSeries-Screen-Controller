@@ -10,7 +10,8 @@ const series = [
 	[4152, 0x12c2], // Arctis 9
 ]
 /**
- * @
+ * tries to get Arctis headset power level
+ * @deprecated
  */
 export const getPercentage = () => {
 	const devices = HID.devices().filter((d) => {
@@ -18,7 +19,7 @@ export const getPercentage = () => {
 			return d.vendorId === s[0] && d.productId === s[1] && d.usage !== 1
 		})
 	})
-	const result = []
+	const result: [HID.Device, number][] = []
 
 	for (var i = 0; i < devices.length; i++) {
 		const device = devices[i]
