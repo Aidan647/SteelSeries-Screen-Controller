@@ -1,8 +1,9 @@
 
-# SteelSeries Screen Controller
+# [![](https://raw.githubusercontent.com/Aidan647/Aidan647/web/images/ts-logo-32.png)](https://www.npmjs.com/package/steelseries-screen-controller) SteelSeries Screen Controller 
 
-Controller for oled screens on SteelSeries Devices
-
+Controller for oled screens on SteelSeries Devices  
+[![](https://badgen.net/github/open-issues/Aidan647/SteelSeries-Screen-Controller)](https://github.com/Aidan647/SteelSeries-Screen-Controller/issues)
+[![](https://badgen.net/badge/icon/npm?icon=npm&label)](https://www.npmjs.com/package/steelseries-screen-controller)
 
 ## Installation
 
