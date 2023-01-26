@@ -20,7 +20,7 @@ export class Font {
 					const row: pixel[] = []
 					for (let j = 0; j < this.width; j++) {
 						const color = image.rgbaAt(x * this.width + j, i + this.height * y)
-						row.push(invert ? (color[0] <= 100 ? 1 : 0) : (color[0] > 100 ? 1 : 0))
+						row.push(invert ? (color[0] <= 100 ? 1 : 0) : color[0] > 100 ? 1 : 0)
 					}
 					letter.push(row)
 				}
@@ -35,5 +35,11 @@ export class Font {
 	}
 	get(char: string) {
 		return this.letters[char.charCodeAt(0)]
+	}
+	addLetter(char: string | number, image: string): this
+	addLetter(char: string | number, letter: pixel[][]): this
+	addLetter(char: string | number, letter: pixel[][] | string): this {
+		this.letters[char.charCodeAt(0)] = letter
+		return this
 	}
 }

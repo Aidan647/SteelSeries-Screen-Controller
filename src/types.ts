@@ -81,6 +81,8 @@ export type AnimationCreateOptions = dimensions
 
 export type TextOptions = startPos & alignment & color & { text: string; font: Font; background?: pixelColor }
 
+export type DisplayOptions = startPos & color
+
 // 	| {
 // 	height: number
 // 	width: number

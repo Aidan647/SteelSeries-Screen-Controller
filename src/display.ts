@@ -301,6 +301,7 @@ export class Display {
 
 		return this
 	}
+
 	//get image as png base64 string
 	// getImage() {
 
@@ -329,3 +330,4 @@ export class Display {
 		return displayData
 	}
 }
+export default Display
